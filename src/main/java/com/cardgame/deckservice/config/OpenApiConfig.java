@@ -1,0 +1,19 @@
+package com.cardgame.deckservice.config;
+
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class OpenApiConfig {
+
+    @Bean
+    public OpenAPI deckServiceOpenApi() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Deck Service API")
+                        .description("REST API for a basic deck-of-cards game with games, decks, players, dealing, and shoe operations.")
+                        .version("v1"));
+    }
+}
