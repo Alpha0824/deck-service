@@ -6,13 +6,11 @@ import com.cardgame.deckservice.repository.DeckRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-@Profile("postgres")
 public class PostgresDeckRepository implements DeckRepository {
 
     private final JdbcClient jdbcClient;
@@ -23,17 +21,12 @@ public class PostgresDeckRepository implements DeckRepository {
 
     @Override
     @Transactional
-    public Deck save(Deck deck) {
+    public Deck create(Deck deck) {
         jdbcClient.sql("""
                         INSERT INTO decks (id)
                         VALUES (:id)
-                        ON CONFLICT (id) DO NOTHING
                         """)
                 .param("id", deck.getId())
-                .update();
-
-        jdbcClient.sql("DELETE FROM deck_cards WHERE deck_id = :deckId")
-                .param("deckId", deck.getId())
                 .update();
 
         List<Card> cards = deck.getCards();

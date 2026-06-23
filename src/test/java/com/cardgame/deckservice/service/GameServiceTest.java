@@ -1,14 +1,16 @@
 package com.cardgame.deckservice.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.cardgame.deckservice.domain.Card;
 import com.cardgame.deckservice.domain.Deck;
 import com.cardgame.deckservice.domain.Rank;
 import com.cardgame.deckservice.domain.Suit;
-import com.cardgame.deckservice.repository.memory.InMemoryDeckRepository;
-import com.cardgame.deckservice.repository.memory.InMemoryGameRepository;
+import com.cardgame.deckservice.exception.ValidationException;
+import com.cardgame.deckservice.repository.fake.FakeDeckRepository;
+import com.cardgame.deckservice.repository.fake.FakeGameRepository;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -23,11 +25,10 @@ class GameServiceTest {
 
     @BeforeEach
     void setUp() {
-        InMemoryDeckRepository deckRepository = new InMemoryDeckRepository();
-        InMemoryGameRepository gameRepository = new InMemoryGameRepository();
-        ShoeShuffler shoeShuffler = new ShoeShuffler();
+        FakeDeckRepository deckRepository = new FakeDeckRepository();
+        FakeGameRepository gameRepository = new FakeGameRepository();
         deckService = new DeckService(deckRepository);
-        gameService = new GameService(gameRepository, deckRepository, shoeShuffler);
+        gameService = new GameService(gameRepository, deckRepository);
     }
 
     @Test
@@ -102,5 +103,27 @@ class GameServiceTest {
         assertEquals(Rank.KING, counts.getFirst().rank());
         assertEquals(Suit.DIAMONDS, counts.get(counts.size() - 1).suit());
         assertEquals(Rank.ACE, counts.get(counts.size() - 1).rank());
+    }
+
+    @Test
+    void cannotRemovePlayerWhoHoldsCards() {
+        UUID gameId = gameService.createGame().getId();
+        UUID deckId = deckService.createDeck().getId();
+        UUID playerId = gameService.addPlayer(gameId, "Alice").getId();
+
+        gameService.addDeckToShoe(gameId, deckId);
+        gameService.dealCards(gameId, playerId, 1);
+
+        assertThrows(ValidationException.class, () -> gameService.removePlayer(gameId, playerId));
+    }
+
+    @Test
+    void canRemovePlayerWithNoCards() {
+        UUID gameId = gameService.createGame().getId();
+        UUID playerId = gameService.addPlayer(gameId, "Alice").getId();
+
+        gameService.removePlayer(gameId, playerId);
+
+        assertTrue(gameService.getPlayerScores(gameId).isEmpty());
     }
 }

@@ -1,4 +1,4 @@
-package com.cardgame.deckservice.service;
+package com.cardgame.deckservice.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -9,7 +9,7 @@ import com.cardgame.deckservice.domain.Suit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
+
 import org.junit.jupiter.api.Test;
 
 class ShoeShufflerTest {
@@ -22,8 +22,7 @@ class ShoeShufflerTest {
                 new Card(Rank.TEN, Suit.CLUBS),
                 new Card(Rank.TWO, Suit.DIAMONDS));
 
-        ShoeShuffler shuffler = new ShoeShuffler(new Random(42));
-        List<Card> shuffled = shuffler.shuffle(original);
+        List<Card> shuffled = ShoeShuffler.shuffle(original);
 
         assertEquals(original.size(), shuffled.size());
         assertEquals(new HashSet<>(original), new HashSet<>(shuffled));
@@ -38,8 +37,7 @@ class ShoeShufflerTest {
             }
         }
 
-        ShoeShuffler shuffler = new ShoeShuffler(new Random(7));
-        List<Card> shuffled = shuffler.shuffle(original);
+        List<Card> shuffled = ShoeShuffler.shuffle(original);
 
         assertNotEquals(original, shuffled);
     }

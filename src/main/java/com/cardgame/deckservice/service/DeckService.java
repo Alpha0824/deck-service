@@ -21,7 +21,7 @@ public class DeckService {
 
     public Deck createDeck() {
         Deck deck = Deck.createStandard();
-        deckRepository.save(deck);
+        deckRepository.create(deck);
         log.info("Created deck {}", deck.getId());
         return deck;
     }

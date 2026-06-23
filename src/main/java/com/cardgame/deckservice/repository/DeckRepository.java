@@ -6,8 +6,7 @@ import java.util.UUID;
 
 public interface DeckRepository {
 
-    Deck save(Deck deck);
+    Deck create(Deck deck);
 
     Optional<Deck> findById(UUID id);
-
 }

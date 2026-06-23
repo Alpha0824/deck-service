@@ -6,36 +6,23 @@ A Spring Boot REST backend for a basic poker-style deck-of-cards game. The servi
 
 - Java 21
 - Maven 3.9+
+- PostgreSQL (local database required at runtime)
 
 ## Run
+
+Start a local PostgreSQL database, then configure connection settings in [`src/main/resources/application.properties`](src/main/resources/application.properties):
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/deckservice
+spring.datasource.username=postgres
+spring.datasource.password=admin
+```
+
+Run the application:
 
 ```bash
 ./mvnw spring-boot:run
 ```
-
-The application starts with the in-memory profile by default:
-
-```properties
-spring.profiles.active=memory
-```
-
-### PostgreSQL mode
-
-To run against a local PostgreSQL database:
-
-```bash
-# Windows PowerShell
-$env:SPRING_PROFILES_ACTIVE="postgres"; ./mvnw spring-boot:run
-
-# Linux/macOS
-SPRING_PROFILES_ACTIVE=postgres ./mvnw spring-boot:run
-```
-
-Local PostgreSQL assumptions for the `postgres` profile:
-
-- Database: `deckservice`
-- Host/port: `localhost:5432`
-- Username/password: `admin` / `admin`
 
 On startup, Spring Boot executes `schema-postgres.sql` automatically to create tables if they do not exist.
 
@@ -89,9 +76,7 @@ flowchart TD
     api --> service[GameAndDeckServices]
     service --> domain[DomainModel]
     service --> repo[RepositoryInterfaces]
-    repo --> memory[InMemoryRepositoriesProfileMemory]
-    repo --> postgres[PostgresRepositoriesProfilePostgres]
-    memory --> maps[(ConcurrentHashMapStore)]
+    repo --> postgres[PostgresRepositories]
     postgres --> db[(PostgreSQLDatabase)]
     service --> shuffler[FisherYatesShuffler]
     api --> openapi[SwaggerOpenAPI]
@@ -100,16 +85,13 @@ flowchart TD
 ### Layers
 
 - **Domain**: immutable `Card`, `Deck`, and enums; mutable aggregate `Game` with player and shoe state.
-- **Repository**: `DeckRepository` and `GameRepository` interfaces with profile-specific implementations.
-- **Service**: application workflows for dealing, scoring, remaining counts, and shuffle.
+- **Repository**: `DeckRepository` and `GameRepository` interfaces with a PostgreSQL JDBC implementation today, leaving room for future database integrations. Game mutations are atomic at the repository boundary.
+- **Service**: orchestration, validation, logging, and read workflows for dealing, scoring, remaining counts, and shuffle.
 - **API**: versioned REST controllers, DTOs, centralized error handling, and Swagger documentation.
 
-### Persistence Profiles
+### PostgreSQL Persistence
 
-- `memory` (default): in-memory repositories backed by `ConcurrentHashMap`.
-- `postgres`: JDBC repositories backed by PostgreSQL with manual SQL via `JdbcClient`.
-
-Services depend only on repository interfaces, so storage can be swapped without changing business logic.
+Runtime persistence uses PostgreSQL with manual SQL via `JdbcClient`. Repository interfaces remain the service boundary so another database implementation can be added later without changing business logic.
 
 PostgreSQL schema (auto-initialized):
 
@@ -119,9 +101,9 @@ PostgreSQL schema (auto-initialized):
 
 ## Design Decisions And Tradeoffs
 
-### In-memory first
+### PostgreSQL-first runtime
 
-The first implementation keeps state in process memory for speed of delivery and testability. This is appropriate for the assignment scope and local development, but state is lost on restart.
+The application requires PostgreSQL at runtime. Service and controller unit tests use test-only fakes or mocks so default test runs do not need a database.
 
 ### No hard player or deck limits
 
@@ -139,6 +121,18 @@ The API exposes player score ranking by total face value. There is no winner end
 
 Shuffling uses an explicit Fisher-Yates implementation over undealt cards only. Library shuffle helpers are intentionally avoided.
 
+### Repository-level game atomicity
+
+Game mutations are owned by `GameRepository` intent methods such as `addPlayer`, `dealCards`, and `shuffleUndealtShoe`. Each mutation runs in a single Postgres transaction that locks the `games` row with `SELECT ... FOR UPDATE`, loads the aggregate, applies domain rules, and persists only the affected rows. This removes JVM-local service locking and gives DB-safe concurrency across multiple app instances without changing the schema.
+
+### Targeted PostgreSQL writes
+
+Within each atomic repository mutation, Postgres still uses targeted SQL instead of rewriting whole aggregates. For example, adding a player inserts one `players` row, dealing updates only the affected `game_shoe_cards` rows, and shuffling updates only undealt shoe positions.
+
+### Player removal
+
+Players can be removed only while they hold no cards. Once a player has been dealt cards, removal is rejected to avoid ambiguous shoe ownership.
+
 ### Error handling
 
 Domain failures map to consistent JSON error responses:
@@ -151,11 +145,10 @@ Domain failures map to consistent JSON error responses:
 
 ### PostgreSQL hardening
 
-The first PostgreSQL implementation uses aggregate replacement on save for simplicity. Future improvements:
+Future improvements:
 
 - Docker Compose for local PostgreSQL and future CI
 - Testcontainers-backed integration tests
-- Targeted SQL updates instead of full aggregate replacement for large games
 - Optional Flyway/Liquibase migrations instead of `schema-postgres.sql` only
 
 ### Simple UI follow-up
@@ -164,14 +157,22 @@ A future static HTML/JavaScript page can be served from `src/main/resources/stat
 
 ## Tests
 
+Default unit and controller tests (no local PostgreSQL required):
+
 ```bash
 ./mvnw test
 ```
 
-Optional PostgreSQL repository integration tests (requires a running local PostgreSQL matching the `postgres` profile):
+Service tests use `FakeGameRepository`, which mirrors the repository atomicity contract in memory so business rules stay fast and DB-free.
+
+Optional PostgreSQL repository integration tests (requires a running local PostgreSQL matching `application.properties`):
 
 ```bash
+# Linux/macOS or Git Bash
 ./mvnw test -Dpostgres.tests=true
+
+# Windows PowerShell (quote the -D flag or PowerShell treats ".tests=true" as a Maven phase)
+./mvnw test "-Dpostgres.tests=true"
 ```
 
-Tests cover deck creation, dealing behavior, multi-deck shoes, score ordering, remaining counts, shuffle behavior, REST endpoints, and error responses.
+These tests cover real persistence round-trips and concurrency behavior such as concurrent dealing under row locks. Tests cover deck creation, dealing behavior, multi-deck shoes, score ordering, remaining counts, shuffle behavior, REST endpoints, and error responses.

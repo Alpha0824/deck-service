@@ -31,6 +31,7 @@ public final class Game {
 
     /**
      * Rebuilds a persisted game aggregate from stored state.
+     * the intent is to rebuild from storage not create new game
      */
     public static Game restore(
             UUID id,
@@ -88,11 +89,14 @@ public final class Game {
     }
 
     public Player removePlayer(UUID playerId) {
-        Player removed = players.remove(playerId);
-        if (removed == null) {
+        Player player = players.get(playerId);
+        if (player == null) {
             throw new IllegalArgumentException("Player not found in game");
         }
-        return removed;
+        if (!player.getHand().isEmpty()) {
+            throw new IllegalArgumentException("Cannot remove a player who holds cards");
+        }
+        return players.remove(playerId);
     }
 
     public void appendDeck(Deck deck) {

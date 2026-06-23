@@ -1,29 +1,24 @@
-package com.cardgame.deckservice.service;
+package com.cardgame.deckservice.util;
 
 import com.cardgame.deckservice.domain.Card;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import org.springframework.stereotype.Component;
 
 /**
- * Fisher-Yates shuffle over a mutable list using an injectable random source.
+ * Fisher-Yates shuffle helper function over a mutable list using a random source.
  * Does not use library-provided shuffle helpers.
  */
-@Component
-public class ShoeShuffler {
+public final class ShoeShuffler {
 
-    private final Random random;
-
-    public ShoeShuffler() {
-        this(new Random());
+    private ShoeShuffler() {
     }
 
-    ShoeShuffler(Random random) {
-        this.random = random;
+    public static List<Card> shuffle(List<Card> cards) {
+        return shuffle(cards, new Random());
     }
 
-    public List<Card> shuffle(List<Card> cards) {
+    static List<Card> shuffle(List<Card> cards, Random random) {
         List<Card> copy = new ArrayList<>(cards);
         for (int i = copy.size() - 1; i > 0; i--) {
             int j = random.nextInt(i + 1);
