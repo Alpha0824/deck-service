@@ -6,19 +6,41 @@ A Spring Boot REST backend for a basic poker-style deck-of-cards game. The servi
 
 - Java 21
 - Maven 3.9+
-- PostgreSQL (local database required at runtime)
+- PostgreSQL (required to run the app; not required for the default test suite)
+
+## Database configuration
+
+Credentials are not committed to the repo. [`application.properties`](src/main/resources/application.properties) reads connection settings from environment variables:
+
+| Variable | Required | Default |
+| --- | --- | --- |
+| `SPRING_DATASOURCE_URL` | No | `jdbc:postgresql://localhost:5432/deckservice` |
+| `SPRING_DATASOURCE_USERNAME` | Yes | — |
+| `SPRING_DATASOURCE_PASSWORD` | Yes | — |
+
+Create a local PostgreSQL database (for example database name `deckservice`) and set the variables in the same terminal session before running the app. On Windows PowerShell, `$env:` values apply only to that session; open a new terminal and set them again if needed.
+
+**Linux/macOS/Git Bash:**
+
+```bash
+export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/deckservice
+export SPRING_DATASOURCE_USERNAME=postgres
+export SPRING_DATASOURCE_PASSWORD=your-password
+```
+
+**Windows PowerShell:**
+
+```powershell
+$env:SPRING_DATASOURCE_URL = "jdbc:postgresql://localhost:5432/deckservice"
+$env:SPRING_DATASOURCE_USERNAME = "postgres"
+$env:SPRING_DATASOURCE_PASSWORD = "your-password"
+```
+
+Adjust URL, username, and password to match your local PostgreSQL setup.
 
 ## Run
 
-Start a local PostgreSQL database, then configure connection settings in [`src/main/resources/application.properties`](src/main/resources/application.properties):
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/deckservice
-spring.datasource.username=postgres
-spring.datasource.password=admin
-```
-
-Run the application:
+With PostgreSQL running and the environment variables set in your terminal:
 
 ```bash
 ./mvnw spring-boot:run
@@ -157,22 +179,37 @@ A future static HTML/JavaScript page can be served from `src/main/resources/stat
 
 ## Tests
 
-Default unit and controller tests (no local PostgreSQL required):
+### Default test suite (no PostgreSQL or env vars)
 
 ```bash
 ./mvnw test
 ```
 
-Service tests use `FakeGameRepository`, which mirrors the repository atomicity contract in memory so business rules stay fast and DB-free.
+This runs unit and controller tests only. Service tests use `FakeGameRepository`, which mirrors the repository atomicity contract in memory so business rules stay fast and DB-free. You do **not** need to set `SPRING_DATASOURCE_*` for this command.
 
-Optional PostgreSQL repository integration tests (requires a running local PostgreSQL matching `application.properties`):
+### Optional PostgreSQL integration tests
+
+These tests are disabled by default. To run them, you need:
+
+1. A running local PostgreSQL instance
+2. The same `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` values as when running the app (set in the same terminal session before Maven)
+
+**Linux/macOS or Git Bash:**
 
 ```bash
-# Linux/macOS or Git Bash
+export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/deckservice
+export SPRING_DATASOURCE_USERNAME=postgres
+export SPRING_DATASOURCE_PASSWORD=your-password
 ./mvnw test -Dpostgres.tests=true
+```
 
-# Windows PowerShell (quote the -D flag or PowerShell treats ".tests=true" as a Maven phase)
+**Windows PowerShell:**
+
+```powershell
+$env:SPRING_DATASOURCE_URL = "jdbc:postgresql://localhost:5432/deckservice"
+$env:SPRING_DATASOURCE_USERNAME = "postgres"
+$env:SPRING_DATASOURCE_PASSWORD = "your-password"
 ./mvnw test "-Dpostgres.tests=true"
 ```
 
-These tests cover real persistence round-trips and concurrency behavior such as concurrent dealing under row locks. Tests cover deck creation, dealing behavior, multi-deck shoes, score ordering, remaining counts, shuffle behavior, REST endpoints, and error responses.
+These tests use `@SpringBootTest` and load the main application context, so they use the same datasource configuration as the running app. They cover real persistence round-trips and concurrency behavior such as concurrent dealing under row locks.
