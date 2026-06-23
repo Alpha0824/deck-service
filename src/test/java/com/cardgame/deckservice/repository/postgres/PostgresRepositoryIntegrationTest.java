@@ -1,6 +1,7 @@
 package com.cardgame.deckservice.repository.postgres;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.cardgame.deckservice.domain.Deck;
@@ -98,6 +99,42 @@ class PostgresRepositoryIntegrationTest {
 
         Game loaded = gameRepository.findById(game.getId()).orElseThrow();
         assertEquals(0, loaded.getPlayers().size());
+    }
+
+    @Test
+    void appendSameDeckTwiceToGameShoeIsRejected() {
+        Deck deck = deckRepository.create(Deck.createStandard());
+
+        Game game = new Game(UUID.randomUUID());
+        gameRepository.create(game);
+
+        gameRepository.appendDeckToShoe(game.getId(), deck);
+
+        ValidationException duplicateDeck = assertThrows(
+                ValidationException.class,
+                () -> gameRepository.appendDeckToShoe(game.getId(), deck));
+        assertEquals("Deck is already in the game shoe", duplicateDeck.getMessage());
+
+        Game loaded = gameRepository.findById(game.getId()).orElseThrow();
+        assertEquals(52, loaded.getShoe().size());
+    }
+
+    @Test
+    void samePlayerNameCanExistInDifferentGames() {
+        Game gameOne = new Game(UUID.randomUUID());
+        Game gameTwo = new Game(UUID.randomUUID());
+        gameRepository.create(gameOne);
+        gameRepository.create(gameTwo);
+
+        Player playerOne = gameRepository.addPlayer(gameOne.getId(), "Alice");
+        Player playerTwo = gameRepository.addPlayer(gameTwo.getId(), "Alice");
+
+        assertNotEquals(playerOne.getId(), playerTwo.getId());
+
+        Game loadedOne = gameRepository.findById(gameOne.getId()).orElseThrow();
+        Game loadedTwo = gameRepository.findById(gameTwo.getId()).orElseThrow();
+        assertEquals("Alice", loadedOne.getPlayers().get(playerOne.getId()).getName());
+        assertEquals("Alice", loadedTwo.getPlayers().get(playerTwo.getId()).getName());
     }
 
     @Test

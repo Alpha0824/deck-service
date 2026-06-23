@@ -52,7 +52,7 @@ public class PostgresGameRepository implements GameRepository {
     @Transactional
     public Player addPlayer(UUID gameId, String name) {
         Game game = loadGameForMutation(gameId);
-        Player player = new Player(UUID.randomUUID(), name);
+        Player player = new Player(UUID.randomUUID(), name); // we don't allow the same player be in different games, everytime it will be a new player adding to a game
         try {
             game.addPlayer(player); // check if player is valid before insert to db
         } catch (IllegalArgumentException ex) {
@@ -97,9 +97,13 @@ public class PostgresGameRepository implements GameRepository {
     @Transactional
     public void appendDeckToShoe(UUID gameId, Deck deck) {
         Game game = loadGameForMutation(gameId);
-        int startPosition = game.getShoe().size();
-        game.appendDeck(deck);
-        insertShoeRows(gameId, deck, startPosition);
+        try {
+            int startPosition = game.getShoe().size();
+            game.appendDeck(deck);
+            insertShoeRows(gameId, deck, startPosition);
+        } catch (IllegalArgumentException ex) {
+            throw new ValidationException(ex.getMessage());
+        }
     }
 
     @Override
@@ -223,6 +227,9 @@ public class PostgresGameRepository implements GameRepository {
         }
     }
 
+    /**
+     * dealt card start from given position and dealt count times to the given player
+     */
     private void markCardsDealtRows(UUID gameId, int fromPosition, int count, UUID playerId) {
         Instant dealtAt = Instant.now();
         for (int position = fromPosition; position < fromPosition + count; position++) {
@@ -245,6 +252,10 @@ public class PostgresGameRepository implements GameRepository {
         }
     }
 
+    /**
+     * shuffle cards in shoe from the next undealt slot
+     * shoe_position remains unchanged, only update suit and rank
+     */
     private void replaceUndealtShoeRows(Game game, int fromPosition) {
         List<Card> shoe = game.getShoe();
         for (int position = fromPosition; position < shoe.size(); position++) {

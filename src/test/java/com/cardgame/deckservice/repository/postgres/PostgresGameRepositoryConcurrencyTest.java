@@ -78,9 +78,9 @@ class PostgresGameRepositoryConcurrencyTest {
             assertEquals(threadCount * dealsPerThread, loaded.getNextDealIndex());
             assertEquals(threadCount * dealsPerThread, loaded.getPlayers().get(player.getId()).getHand().size());
         } finally {
-            // rollback unit test changes
+            // rollback unit test changes in final scope
+            // todo: better to also clean up the created deck but it's better not introduce a contract 'deleteById' that business logic does not actually use
             gameRepository.deleteById(game.getId());
-            // todo: how to clean up by deckRepository that affects deck & deck_cards?
         }
     }
 }

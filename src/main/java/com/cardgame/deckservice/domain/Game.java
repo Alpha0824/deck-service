@@ -101,6 +101,10 @@ public final class Game {
 
     public void appendDeck(Deck deck) {
         Objects.requireNonNull(deck, "deck");
+        //we should not allow the same deck be used twice in a game
+        if (shoeSourceDeckIds.contains(deck.getId())) {
+            throw new IllegalArgumentException("Deck is already in the game shoe");
+        }
         for (Card card : deck.getCards()) {
             shoe.add(card);
             shoeSourceDeckIds.add(deck.getId());

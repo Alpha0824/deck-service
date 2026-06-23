@@ -9,4 +9,5 @@ public interface DeckRepository {
     Deck create(Deck deck);
 
     Optional<Deck> findById(UUID id);
+
 }

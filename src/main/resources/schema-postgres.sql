@@ -17,24 +17,24 @@ CREATE TABLE IF NOT EXISTS games (
 );
 
 CREATE TABLE IF NOT EXISTS players (
-    id        UUID PRIMARY KEY,
-    game_id   UUID        NOT NULL REFERENCES games (id) ON DELETE CASCADE,
+    id        UUID PRIMARY KEY, -- naturally defend same player in different game
+    game_id   UUID        NOT NULL REFERENCES games (id) ON DELETE CASCADE, --delete a game will automatically delete it's players
     name      VARCHAR(64) NOT NULL,
     joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- no duplicate player with in a given game
+-- no duplicate named player with in the same game
 CREATE UNIQUE INDEX IF NOT EXISTS players_game_name_ci_idx
     ON players (game_id, LOWER(name));
 
 -- the game shoe
 CREATE TABLE IF NOT EXISTS game_shoe_cards (
-    game_id             UUID        NOT NULL REFERENCES games (id) ON DELETE CASCADE,
-    shoe_position       INT         NOT NULL, -- 0 based, 0 means first card that would be or was dealt
+    game_id             UUID        NOT NULL REFERENCES games (id) ON DELETE CASCADE, -- delete a game will automatically delete it's shoe cards
+    shoe_position       INT         NOT NULL, -- 0 based, represent the slot in the game’s deal order
     source_deck_id      UUID        NOT NULL REFERENCES decks (id),
     suit                VARCHAR(16) NOT NULL,
     rank                VARCHAR(16) NOT NULL,
     dealt_to_player_id  UUID        REFERENCES players (id) ON DELETE SET NULL, -- null means not yet dealt
     dealt_at            TIMESTAMPTZ,
-    PRIMARY KEY (game_id, shoe_position)
+    PRIMARY KEY (game_id, shoe_position) -- a game cannot have 2 cards at the same position
 );

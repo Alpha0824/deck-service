@@ -56,7 +56,13 @@ public class FakeGameRepository implements GameRepository {
 
     @Override
     public void appendDeckToShoe(UUID gameId, Deck deck) {
-        mutateGame(gameId, game -> game.appendDeck(deck));
+        mutateGame(gameId, game -> {
+            try {
+                game.appendDeck(deck);
+            } catch (IllegalArgumentException ex) {
+                throw new ValidationException(ex.getMessage());
+            }
+        });
     }
 
     @Override

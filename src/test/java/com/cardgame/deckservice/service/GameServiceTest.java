@@ -1,6 +1,7 @@
 package com.cardgame.deckservice.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -125,5 +126,45 @@ class GameServiceTest {
         gameService.removePlayer(gameId, playerId);
 
         assertTrue(gameService.getPlayerScores(gameId).isEmpty());
+    }
+
+    @Test
+    void cannotAddSameDeckTwiceToGameShoe() {
+        UUID gameId = gameService.createGame().getId();
+        UUID deckId = deckService.createDeck().getId();
+
+        gameService.addDeckToShoe(gameId, deckId);
+        assertEquals(52, gameService.getRemainingCardCounts(gameId).stream()
+                .mapToInt(GameService.CardCount::count)
+                .sum());
+
+        ValidationException duplicateDeck = assertThrows(
+                ValidationException.class,
+                () -> gameService.addDeckToShoe(gameId, deckId));
+        assertEquals("Deck is already in the game shoe", duplicateDeck.getMessage());
+        assertEquals(52, gameService.getRemainingCardCounts(gameId).stream()
+                .mapToInt(GameService.CardCount::count)
+                .sum());
+    }
+
+    @Test
+    void samePlayerNameCanJoinDifferentGames() {
+        UUID gameOneId = gameService.createGame().getId();
+        UUID gameTwoId = gameService.createGame().getId();
+
+        UUID playerInGameOne = gameService.addPlayer(gameOneId, "Alice").getId();
+        UUID playerInGameTwo = gameService.addPlayer(gameTwoId, "Alice").getId();
+
+        assertNotEquals(playerInGameOne, playerInGameTwo);
+
+        List<GameService.PlayerScore> gameOneScores = gameService.getPlayerScores(gameOneId);
+        List<GameService.PlayerScore> gameTwoScores = gameService.getPlayerScores(gameTwoId);
+
+        assertEquals(1, gameOneScores.size());
+        assertEquals(1, gameTwoScores.size());
+        assertEquals("Alice", gameOneScores.getFirst().name());
+        assertEquals("Alice", gameTwoScores.getFirst().name());
+        assertEquals(playerInGameOne, gameOneScores.getFirst().playerId());
+        assertEquals(playerInGameTwo, gameTwoScores.getFirst().playerId());
     }
 }
