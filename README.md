@@ -10,15 +10,17 @@ A Spring Boot REST backend for a basic poker-style deck-of-cards game. The servi
 
 ## Database configuration
 
-Credentials are not committed to the repo. [`application.properties`](src/main/resources/application.properties) reads connection settings from environment variables:
+[`application.properties`](src/main/resources/application.properties) reads connection settings from environment variables, with local-development defaults. Credentials are not committed to the repo.
 
 | Variable | Required | Default |
 | --- | --- | --- |
 | `SPRING_DATASOURCE_URL` | No | `jdbc:postgresql://localhost:5432/deckservice` |
-| `SPRING_DATASOURCE_USERNAME` | Yes | — |
-| `SPRING_DATASOURCE_PASSWORD` | Yes | — |
+| `SPRING_DATASOURCE_USERNAME` | No | `postgres` |
+| `SPRING_DATASOURCE_PASSWORD` | No | `postgres` |
 
-Create a local PostgreSQL database (for example database name `deckservice`) and set the variables in the same terminal session before running the app. On Windows PowerShell, `$env:` values apply only to that session; open a new terminal and set them again if needed.
+Create a local PostgreSQL database (for example database name `deckservice`). If your local PostgreSQL uses the defaults above, you can run the app without setting any environment variables.
+
+Override the variables when your setup differs. On Windows PowerShell, `$env:` values apply only to that session; open a new terminal and set them again if needed.
 
 **Linux/macOS/Git Bash:**
 
@@ -40,7 +42,7 @@ Adjust URL, username, and password to match your local PostgreSQL setup.
 
 ## Run
 
-With PostgreSQL running and the environment variables set in your terminal:
+With PostgreSQL running (defaults assume local `postgres`/`postgres`; override via environment variables if needed):
 
 ```bash
 ./mvnw spring-boot:run
@@ -234,7 +236,7 @@ This runs unit and controller tests only. Service tests use `FakeGameRepository`
 These tests are disabled by default. To run them, you need:
 
 1. A running local PostgreSQL instance
-2. The same `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` values as when running the app (set in the same terminal session before Maven)
+2. Matching datasource settings — use the defaults above, or set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` in the same terminal session before Maven if your setup differs
 
 **Linux/macOS or Git Bash:**
 
