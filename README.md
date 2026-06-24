@@ -189,6 +189,17 @@ This is a coarse-grained lock on the whole game, not fine-grained locks per tabl
 - Every mutation reloads the full aggregate (players + shoe), even when only one part changes.
 - A finer-grained design could allow more concurrency, but would need separate locking rules and more concurrency tests per operation pair.
 
+**Why a DB lock instead of JVM locking?** Mutations could also be serialized with `synchronized` or a per-game lock map in `GameService`. That works inside one app instance, but it does not protect shared state when multiple instances run against the same PostgreSQL database. Each JVM would have its own lock, so two pods could still load the same game, compute the same `nextDealIndex`, and race on the same shoe positions.
+
+Locking at the repository layer keeps one rule aligned with the transaction boundary: lock the game row, read current DB state, mutate, commit. The in-memory test fake [`FakeGameRepository`](src/test/java/com/cardgame/deckservice/repository/fake/FakeGameRepository.java) uses JVM `synchronized` per game ID because its state lives only in memory and there is no shared database to coordinate.
+
+| Approach | Strengths | Weaknesses |
+| --- | --- | --- |
+| **JVM lock** (`synchronized`, `ReentrantLock`) | Simple and fast within one process; good fit for in-memory fakes | Not safe across multiple app instances; easy to misalign with DB transaction commit timing |
+| **DB lock** (`SELECT ... FOR UPDATE`) | Safe across instances; lock is held on the source of truth until commit/rollback | Extra DB round trip; holds a connection for the mutation; coarse game-level serialization |
+
+This project uses DB locking in production because persisted game state lives in PostgreSQL and the service is intended to remain correct under multi-instance deployment.
+
 ### Targeted PostgreSQL writes
 
 Within each atomic repository mutation, Postgres still uses targeted SQL instead of rewriting whole aggregates. For example, adding a player inserts one `players` row, dealing updates only the affected `game_shoe_cards` rows, and shuffling updates only undealt shoe positions.
