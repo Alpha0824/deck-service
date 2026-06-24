@@ -292,14 +292,13 @@ public class PostgresGameRepository implements GameRepository {
 
         List<Card> shoe = new ArrayList<>();
         List<UUID> sourceDeckIds = new ArrayList<>();
-        List<UUID> dealtToPlayerIds = new ArrayList<>();
+
         int nextDealIndex = 0;
 
         for (ShoeRow shoeRow : shoeRows) {
             Card card = JdbcCardMapper.toCard(shoeRow.suit(), shoeRow.rank());
             shoe.add(card);
             sourceDeckIds.add(shoeRow.sourceDeckId());
-            dealtToPlayerIds.add(shoeRow.dealtToPlayerId());
 
             if (shoeRow.dealtToPlayerId() != null) {
                 nextDealIndex = shoeRow.shoePosition() + 1;
@@ -314,7 +313,7 @@ public class PostgresGameRepository implements GameRepository {
             players.add(Player.restore(playerRow.id(), playerRow.name(), hand));
         }
 
-        return Game.restore(id, players, shoe, sourceDeckIds, dealtToPlayerIds, nextDealIndex);
+        return Game.restore(id, players, shoe, sourceDeckIds, nextDealIndex);
     }
 
     private record PlayerRow(UUID id, String name) {

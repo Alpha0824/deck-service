@@ -141,13 +141,11 @@ public class FakeGameRepository implements GameRepository {
                 .toList();
         List<Card> shoe = new ArrayList<>(source.getShoe());
         List<UUID> sourceDeckIds = new ArrayList<>(source.getShoeSourceDeckIds());
-        List<UUID> dealtToPlayerIds = new ArrayList<>(source.getDealtToPlayerByShoePosition());
         return Game.restore(
                 source.getId(),
                 players,
                 shoe,
                 sourceDeckIds,
-                dealtToPlayerIds,
                 source.getNextDealIndex());
     }
 }

@@ -17,7 +17,6 @@ public final class Game {
     private final Map<UUID, Player> players;
     private final List<Card> shoe; // card at each position
     private final List<UUID> shoeSourceDeckIds; // provenance per slot (set at append time, not updated on shuffle)
-    private final List<UUID> dealtToPlayerByShoePosition; // deal history per slot
     private int nextDealIndex; // where dealing resumes, O(1) dealing — dealCards() just uses the cursor
 
     public Game(UUID id) {
@@ -25,7 +24,6 @@ public final class Game {
         this.players = new LinkedHashMap<>();
         this.shoe = new ArrayList<>();
         this.shoeSourceDeckIds = new ArrayList<>();
-        this.dealtToPlayerByShoePosition = new ArrayList<>();
         this.nextDealIndex = 0;
     }
 
@@ -38,7 +36,6 @@ public final class Game {
             List<Player> players,
             List<Card> shoe,
             List<UUID> shoeSourceDeckIds,
-            List<UUID> dealtToPlayerByShoePosition,
             int nextDealIndex) {
         Game game = new Game(id);
         for (Player player : players) {
@@ -46,7 +43,6 @@ public final class Game {
         }
         game.shoe.addAll(shoe);
         game.shoeSourceDeckIds.addAll(shoeSourceDeckIds);
-        game.dealtToPlayerByShoePosition.addAll(dealtToPlayerByShoePosition);
         game.nextDealIndex = nextDealIndex;
         return game;
     }
@@ -65,10 +61,6 @@ public final class Game {
 
     public List<UUID> getShoeSourceDeckIds() {
         return List.copyOf(shoeSourceDeckIds);
-    }
-
-    public List<UUID> getDealtToPlayerByShoePosition() {
-        return Collections.unmodifiableList(dealtToPlayerByShoePosition); // undealt slots are null → List.copyOf does not allow this
     }
 
     public int getNextDealIndex() {
@@ -108,7 +100,6 @@ public final class Game {
         for (Card card : deck.getCards()) {
             shoe.add(card);
             shoeSourceDeckIds.add(deck.getId());
-            dealtToPlayerByShoePosition.add(null);
         }
     }
 
@@ -127,7 +118,6 @@ public final class Game {
 
         List<Card> dealt = new ArrayList<>();
         while (dealt.size() < count && nextDealIndex < shoe.size()) {
-            dealtToPlayerByShoePosition.set(nextDealIndex, playerId);
             Card card = shoe.get(nextDealIndex++);
             dealt.add(card);
         }
