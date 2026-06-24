@@ -147,6 +147,7 @@ These rules define what the service models today. They are enforced in the domai
 - **The same player record cannot join multiple games.** A player ID always belongs to exactly one `game_id`. The API does not support reusing an existing player from game A in game B; you add a fresh participant per game instead.
 - **The same display name may appear in different games.** `"Alice"` in game 1 and `"Alice"` in game 2 are separate player records with different IDs. Name uniqueness is enforced only within a single game.
 - **Deleting a game removes its players.** `players.game_id` references `games(id) ON DELETE CASCADE`, so all players for that game are removed when the game is deleted.
+- **Players can be removed only while they hold no cards.** Once a player has been dealt cards, removal is rejected to avoid ambiguous shoe ownership.
 
 ### Game
 
@@ -167,13 +168,30 @@ Shuffling uses an explicit Fisher-Yates implementation over undealt cards only. 
 
 Game mutations are owned by `GameRepository` intent methods such as `addPlayer`, `dealCards`, and `shuffleUndealtShoe`. Each mutation runs in a single Postgres transaction that locks the `games` row with `SELECT ... FOR UPDATE`, loads the aggregate, applies domain rules, and persists only the affected rows. This removes JVM-local service locking and gives DB-safe concurrency across multiple app instances without changing the schema.
 
+This is a coarse-grained lock on the whole game, not fine-grained locks per table. That is intentional: `Game` is treated as the aggregate root, and every mutation follows the same read-modify-write path through `PostgresGameRepository.loadGameForMutation`.
+
+**Why lock at all?** Some operations clearly need serialization. Concurrent `dealCards` calls must not advance the same `nextDealIndex` twice; concurrent `appendDeckToShoe` calls must not assign the same shoe positions; `dealCards` and `shuffleUndealtShoe` must not interleave on the undealt portion of the shoe. A game-row lock makes those cases safe without analyzing every operation pair.
+
+**Could some operations run concurrently?** Yes. `addPlayer` writes to `players` while `appendDeckToShoe` writes to `game_shoe_cards`, so those two do not touch the same rows. In a more granular design, they could run in parallel and rely on DB constraints such as the unique player-name index and the `(game_id, shoe_position)` primary key. This project chose one lock for all mutations instead.
+
+**Pros:**
+
+- Simple rule: any game mutation serializes on the game row.
+- Safe across all mutation pairs, especially deal, shuffle, and append-deck races.
+- Domain rules (duplicate player name, duplicate deck in shoe, remove player with cards) run against a consistent in-memory snapshot of the aggregate.
+- Works across multiple app instances because the lock is in PostgreSQL, not in JVM memory.
+- Low overhead for this workload: game setup and dealing are relatively infrequent compared to reads.
+
+**Cons:**
+
+- Over-serialization: unrelated mutations wait on each other (for example, `addPlayer` and `appendDeckToShoe`).
+- Lower throughput if many clients mutate the same game at once during setup.
+- Every mutation reloads the full aggregate (players + shoe), even when only one part changes.
+- A finer-grained design could allow more concurrency, but would need separate locking rules and more concurrency tests per operation pair.
+
 ### Targeted PostgreSQL writes
 
 Within each atomic repository mutation, Postgres still uses targeted SQL instead of rewriting whole aggregates. For example, adding a player inserts one `players` row, dealing updates only the affected `game_shoe_cards` rows, and shuffling updates only undealt shoe positions.
-
-### Player removal
-
-Players can be removed only while they hold no cards. Once a player has been dealt cards, removal is rejected to avoid ambiguous shoe ownership.
 
 ### Error handling
 
