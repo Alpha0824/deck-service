@@ -50,9 +50,17 @@ On startup, Spring Boot executes `schema-postgres.sql` automatically to create t
 
 Docker is not required for this stage, but is recommended later for reproducible local and CI environments.
 
-Swagger UI is available at:
+Testing UI (simple API tester):
+
+- [http://localhost:8080/](http://localhost:8080/)
+
+Swagger UI is also available at:
 
 - [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+
+![Swagger UI example showing Games endpoints](docs/images/swagger-ui-games-example.png)
+
+Swagger UI lists all `/api/v1` endpoints with descriptions. Expand any row to try a request, view parameters, and inspect response schemas.
 
 OpenAPI JSON:
 
@@ -138,23 +146,16 @@ These rules define what the service models today. They are enforced in the domai
 - **The same display name may appear in different games.** `"Alice"` in game 1 and `"Alice"` in game 2 are separate player records with different IDs. Name uniqueness is enforced only within a single game.
 - **Deleting a game removes its players.** `players.game_id` references `games(id) ON DELETE CASCADE`, so all players for that game are removed when the game is deleted.
 
+### Game
+
+- **No hard player or deck limits.** The API does not impose artificial player or deck caps. Dealing naturally stops when the shoe is exhausted. Limits can be added later as configurable policy.
+- **Scoring, not winning.** The API exposes player score ranking by total face value. There is no winner of a game because the assignment does not define rounds, turns, or victory rules.
+
 ## Design Decisions And Tradeoffs
 
 ### PostgreSQL-first runtime
 
 The application requires PostgreSQL at runtime. Service and controller unit tests use test-only fakes or mocks so default test runs do not need a database.
-
-### No hard player or deck limits
-
-The API does not impose artificial player or deck caps. Dealing naturally stops when the shoe is exhausted. Limits can be added later as configurable policy.
-
-### Multi-deck shoes
-
-Multiple decks can be added to a game shoe. Duplicate suit/rank combinations are tracked explicitly in remaining-card counts.
-
-### Scoring, not winning
-
-The API exposes player score ranking by total face value. There is no winner endpoint because the assignment does not define rounds, turns, or victory rules.
 
 ### Custom shuffle
 
@@ -190,9 +191,33 @@ Future improvements:
 - Testcontainers-backed integration tests
 - Optional Flyway/Liquibase migrations instead of `schema-postgres.sql` only
 
-### Simple UI follow-up
+### Simple testing UI (AI Generated)
 
-A future static HTML/JavaScript page can be served from `src/main/resources/static` and call the `/api/v1` endpoints for create game, create deck, add deck, manage players, deal cards, shuffle, and inspect remaining cards.
+A static HTML/JavaScript page is served from [`src/main/resources/static/index.html`](src/main/resources/static/index.html) at [http://localhost:8080/](http://localhost:8080/) when the app is running. No separate frontend build step is required.
+
+**Layout:**
+
+- **Left action menu** — buttons and forms for create/delete game, create deck, add deck to game shoe, add/remove players, shuffle shoe, deal cards, and GET state endpoints.
+- **Right panel** — current `gameId`, `deckId`, and `playerId` (editable), known players list, last API response JSON, and formatted fetched state (player cards, scores, remaining shoe counts).
+
+**Example:**
+
+![Testing UI example showing player scores after dealing cards](docs/images/testing-ui-example.png)
+
+In this example, a game and deck were created, players were added, cards were dealt, and **Player Scores** was fetched. The right panel shows the current IDs, the raw JSON response, and a formatted scores table (Jack with total value 6, Alice with 0).
+
+**Typical workflow:**
+
+1. Open [http://localhost:8080/](http://localhost:8080/) with the app running.
+2. Click **Create Game** — the new game ID appears on the right.
+3. Click **Create Deck** — the new deck ID appears on the right.
+4. Click **Add Deck to Game Shoe**.
+5. Enter a player name and click **Add Player**.
+6. Optionally click **Shuffle Shoe**.
+7. Set a deal count and click **Deal to Player**.
+8. Use **Get State** actions (Player Cards, Player Scores, Remaining by Suit, Remaining by Card) to inspect current data on the right.
+
+Success and error messages from the API are shown at the top of the right panel. Decks cannot be removed from a game shoe once added (matching the API contract).
 
 ## Tests
 

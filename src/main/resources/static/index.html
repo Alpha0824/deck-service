@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deck Service – API Tester</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #f4f5f7;
+      line-height: 1.45;
+    }
+    header {
+      background: #1e3a5f;
+      color: #fff;
+      padding: 12px 20px;
+    }
+    header h1 { margin: 0; font-size: 1.15rem; font-weight: 600; }
+    header p { margin: 4px 0 0; font-size: 0.85rem; opacity: 0.85; }
+    .layout {
+      display: flex;
+      min-height: calc(100vh - 64px);
+    }
+    .sidebar {
+      width: 320px;
+      min-width: 280px;
+      background: #fff;
+      border-right: 1px solid #dde1e6;
+      overflow-y: auto;
+      padding: 12px 0;
+    }
+    .main {
+      flex: 1;
+      padding: 16px 20px;
+      overflow-y: auto;
+    }
+    .section {
+      border-bottom: 1px solid #eef0f2;
+      padding: 10px 16px;
+    }
+    .section:last-child { border-bottom: none; }
+    .section h2 {
+      margin: 0 0 8px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #5c6670;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: #444;
+      margin-bottom: 4px;
+    }
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #c8ced4;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+    input:focus { outline: 2px solid #3b7ddd; border-color: #3b7ddd; }
+    button {
+      display: inline-block;
+      padding: 6px 12px;
+      margin: 0 6px 6px 0;
+      border: 1px solid #3b7ddd;
+      border-radius: 4px;
+      background: #3b7ddd;
+      color: #fff;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    button:hover { background: #2f6bc4; }
+    button.secondary {
+      background: #fff;
+      color: #3b7ddd;
+    }
+    button.secondary:hover { background: #eef4fc; }
+    button.danger {
+      background: #c0392b;
+      border-color: #c0392b;
+    }
+    button.danger:hover { background: #a93226; }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .panel {
+      background: #fff;
+      border: 1px solid #dde1e6;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 10px 14px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #eef0f2;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .panel-body { padding: 14px; }
+    .status {
+      padding: 10px 14px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+    }
+    .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    .status.hidden { display: none; }
+    .id-grid {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 6px 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .id-grid label { margin: 0; }
+    pre {
+      margin: 0;
+      padding: 12px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 0.8rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .player-list {
+      list-style: none;
+      padding: 0;
+      margin: 8px 0 0;
+    }
+    .player-list li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      font-size: 0.85rem;
+    }
+    .player-list button {
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      margin: 0;
+    }
+    .hint { font-size: 0.75rem; color: #777; margin: 4px 0 8px; }
+    .context-badge {
+      display: block;
+      font-size: 0.8rem;
+      padding: 6px 8px;
+      margin-bottom: 8px;
+      background: #eef4fc;
+      border: 1px solid #c8daf5;
+      border-radius: 4px;
+      color: #1e3a5f;
+      word-break: break-all;
+    }
+    .context-badge.missing {
+      background: #fff8e6;
+      border-color: #f0d98c;
+      color: #7a5b00;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid #eef0f2;
+    }
+    th { background: #f8f9fa; font-weight: 600; }
+    .empty { color: #888; font-style: italic; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Deck Service – API Tester</h1>
+    <p>Exercise <code>/api/v1</code> endpoints. Swagger UI also available at <a href="/swagger-ui/index.html" style="color:#aad4ff">/swagger-ui/index.html</a>.</p>
+  </header>
+
+  <div class="layout">
+    <nav class="sidebar" aria-label="API actions">
+      <div class="section">
+        <h2>Games</h2>
+        <button type="button" id="btn-create-game">Create Game</button>
+        <button type="button" id="btn-delete-game" class="danger secondary">Delete Game</button>
+      </div>
+
+      <div class="section">
+        <h2>Decks</h2>
+        <button type="button" id="btn-create-deck">Create Deck</button>
+      </div>
+
+      <div class="section">
+        <h2>Game Shoe</h2>
+        <p class="hint">Decks cannot be removed once added to a shoe.</p>
+        <button type="button" id="btn-add-deck-to-shoe">Add Deck to Game Shoe</button>
+        <button type="button" id="btn-shuffle-shoe" class="secondary">Shuffle Shoe</button>
+      </div>
+
+      <div class="section">
+        <h2>Players in Game</h2>
+        <div id="players-game-context" class="context-badge missing">No game selected — create or enter a Game ID first.</div>
+        <label for="player-name">Player name</label>
+        <input type="text" id="player-name" placeholder="Alice" value="Alice">
+        <button type="button" id="btn-add-player">Add Player to Game</button>
+        <button type="button" id="btn-remove-player" class="danger secondary">Remove Player from Game</button>
+        <button type="button" id="btn-refresh-players" class="secondary">Refresh Players in Game</button>
+        <p class="hint">Adds to the current Game ID shown on the right. Use Refresh to load players already in that game.</p>
+      </div>
+
+      <div class="section">
+        <h2>Deal Cards</h2>
+        <label for="deal-count">Count</label>
+        <input type="number" id="deal-count" min="1" value="1">
+        <button type="button" id="btn-deal-cards">Deal to Player</button>
+      </div>
+
+      <div class="section">
+        <h2>Get State</h2>
+        <button type="button" id="btn-get-player-cards" class="secondary">Player Cards</button>
+        <button type="button" id="btn-get-scores" class="secondary">Player Scores</button>
+        <button type="button" id="btn-get-remaining-suits" class="secondary">Remaining by Suit</button>
+        <button type="button" id="btn-get-remaining-cards" class="secondary">Remaining by Card</button>
+      </div>
+    </nav>
+
+    <main class="main">
+      <div id="status-banner" class="status hidden" role="status"></div>
+
+      <div class="panel">
+        <div class="panel-header">Current IDs</div>
+        <div class="panel-body">
+          <div class="id-grid">
+            <label for="game-id">Game ID</label>
+            <input type="text" id="game-id" placeholder="Create a game first">
+            <label for="deck-id">Deck ID</label>
+            <input type="text" id="deck-id" placeholder="Create a deck first">
+            <label for="player-id">Player ID</label>
+            <input type="text" id="player-id" placeholder="Add a player first">
+          </div>
+          <div>
+            <strong>Players in current game</strong>
+            <ul id="player-list" class="player-list"><li class="empty">None yet</li></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Last API Response</div>
+        <div class="panel-body">
+          <pre id="last-response"><span class="empty">No requests yet.</span></pre>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Fetched State</div>
+        <div class="panel-body" id="state-display">
+          <p class="empty">Use a Get State action to load data here.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const API = '/api/v1';
+
+    const state = {
+      gameId: '',
+      deckId: '',
+      playerId: '',
+      players: []
+    };
+
+    const els = {
+      status: document.getElementById('status-banner'),
+      gameId: document.getElementById('game-id'),
+      deckId: document.getElementById('deck-id'),
+      playerId: document.getElementById('player-id'),
+      playerName: document.getElementById('player-name'),
+      dealCount: document.getElementById('deal-count'),
+      lastResponse: document.getElementById('last-response'),
+      stateDisplay: document.getElementById('state-display'),
+      playerList: document.getElementById('player-list'),
+      playersGameContext: document.getElementById('players-game-context')
+    };
+
+    function syncInputsFromState() {
+      els.gameId.value = state.gameId;
+      els.deckId.value = state.deckId;
+      els.playerId.value = state.playerId;
+      renderPlayerList();
+      updatePlayersGameContext();
+      updateGameScopedButtons();
+    }
+
+    function updatePlayersGameContext() {
+      if (!state.gameId) {
+        els.playersGameContext.textContent = 'No game selected — create or enter a Game ID first.';
+        els.playersGameContext.className = 'context-badge missing';
+        return;
+      }
+      els.playersGameContext.textContent = 'Current game: ' + state.gameId;
+      els.playersGameContext.className = 'context-badge';
+    }
+
+    function updateGameScopedButtons() {
+      const hasGame = !!state.gameId;
+      document.getElementById('btn-add-player').disabled = !hasGame;
+      document.getElementById('btn-remove-player').disabled = !hasGame;
+      document.getElementById('btn-refresh-players').disabled = !hasGame;
+      document.getElementById('btn-add-deck-to-shoe').disabled = !hasGame;
+      document.getElementById('btn-shuffle-shoe').disabled = !hasGame;
+      document.getElementById('btn-deal-cards').disabled = !hasGame;
+      document.getElementById('btn-delete-game').disabled = !hasGame;
+    }
+
+    function syncStateFromInputs() {
+      state.gameId = els.gameId.value.trim();
+      state.deckId = els.deckId.value.trim();
+      state.playerId = els.playerId.value.trim();
+    }
+
+    ['gameId', 'deckId', 'playerId'].forEach(key => {
+      els[key].addEventListener('input', () => {
+        state[key] = els[key].value.trim();
+        if (key === 'gameId') {
+          updatePlayersGameContext();
+          updateGameScopedButtons();
+        }
+      });
+      els[key].addEventListener('change', () => {
+        state[key] = els[key].value.trim();
+        if (key === 'gameId') {
+          state.players = [];
+          state.playerId = '';
+          syncInputsFromState();
+          refreshPlayersInGame({ silent: true });
+        }
+      });
+    });
+
+    function showStatus(message, type) {
+      els.status.textContent = message;
+      els.status.className = 'status ' + type;
+    }
+
+    function hideStatus() {
+      els.status.className = 'status hidden';
+    }
+
+    function showResponse(data) {
+      if (data === null || data === undefined || data === '') {
+        els.lastResponse.textContent = '(empty response – 204 No Content)';
+      } else {
+        els.lastResponse.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      }
+    }
+
+    async function apiRequest(method, path, body) {
+      syncStateFromInputs();
+      const options = { method, headers: {} };
+      if (body !== undefined) {
+        options.headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify(body);
+      }
+
+      let response;
+      try {
+        response = await fetch(API + path, options);
+      } catch (err) {
+        showStatus('Network error: ' + err.message, 'error');
+        showResponse({ error: err.message });
+        throw err;
+      }
+
+      const text = await response.text();
+      let parsed = null;
+      if (text) {
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          parsed = text;
+        }
+      }
+
+      showResponse(parsed);
+
+      if (response.ok) {
+        showStatus(method + ' ' + path + ' – success (' + response.status + ')', 'success');
+        return { ok: true, status: response.status, data: parsed };
+      }
+
+      const message = parsed && parsed.message
+        ? parsed.message
+        : (parsed && parsed.error ? parsed.error : 'Request failed with status ' + response.status);
+      showStatus(message, 'error');
+      return { ok: false, status: response.status, data: parsed };
+    }
+
+    function requireGameId() {
+      syncStateFromInputs();
+      if (!state.gameId) {
+        showStatus('Game ID is required. Create a game or enter one manually.', 'error');
+        return false;
+      }
+      return true;
+    }
+
+    function requireDeckId() {
+      syncStateFromInputs();
+      if (!state.deckId) {
+        showStatus('Deck ID is required. Create a deck or enter one manually.', 'error');
+        return false;
+      }
+      return true;
+    }
+
+    function requirePlayerId() {
+      syncStateFromInputs();
+      if (!state.playerId) {
+        showStatus('Player ID is required. Add a player or select one from the list.', 'error');
+        return false;
+      }
+      return true;
+    }
+
+    function renderPlayerList() {
+      if (state.players.length === 0) {
+        els.playerList.innerHTML = '<li class="empty">None yet</li>';
+        return;
+      }
+      els.playerList.innerHTML = state.players.map(p => `
+        <li>
+          <span>${escapeHtml(p.name)}</span>
+          <code style="font-size:0.75rem;color:#555">${p.id.slice(0, 8)}…</code>
+          <button type="button" class="secondary select-player" data-id="${p.id}">Select</button>
+        </li>
+      `).join('');
+      els.playerList.querySelectorAll('.select-player').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.playerId = btn.dataset.id;
+          els.playerId.value = state.playerId;
+        });
+      });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function renderCards(cards) {
+      if (!cards || cards.length === 0) {
+        return '<p class="empty">No cards.</p>';
+      }
+      let html = '<table><thead><tr><th>Rank</th><th>Suit</th><th>Face Value</th></tr></thead><tbody>';
+      cards.forEach(c => {
+        html += `<tr><td>${escapeHtml(c.rank)}</td><td>${escapeHtml(c.suit)}</td><td>${c.faceValue}</td></tr>`;
+      });
+      html += '</tbody></table>';
+      return html;
+    }
+
+    function renderScores(scores) {
+      if (!scores || scores.length === 0) {
+        return '<p class="empty">No players in game.</p>';
+      }
+      let html = '<table><thead><tr><th>Name</th><th>Player ID</th><th>Total Value</th></tr></thead><tbody>';
+      scores.forEach(s => {
+        html += `<tr><td>${escapeHtml(s.name)}</td><td><code>${s.playerId}</code></td><td>${s.totalValue}</td></tr>`;
+      });
+      html += '</tbody></table>';
+      return html;
+    }
+
+    function renderRemainingSuits(items) {
+      if (!items || items.length === 0) {
+        return '<p class="empty">No remaining cards.</p>';
+      }
+      let html = '<table><thead><tr><th>Suit</th><th>Count</th></tr></thead><tbody>';
+      items.forEach(i => {
+        html += `<tr><td>${escapeHtml(i.suit)}</td><td>${i.count}</td></tr>`;
+      });
+      html += '</tbody></table>';
+      return html;
+    }
+
+    function renderRemainingCards(items) {
+      if (!items || items.length === 0) {
+        return '<p class="empty">No remaining cards.</p>';
+      }
+      let html = '<table><thead><tr><th>Suit</th><th>Rank</th><th>Count</th></tr></thead><tbody>';
+      items.forEach(i => {
+        html += `<tr><td>${escapeHtml(i.suit)}</td><td>${escapeHtml(i.rank)}</td><td>${i.count}</td></tr>`;
+      });
+      html += '</tbody></table>';
+      return html;
+    }
+
+    function setStateDisplay(title, html) {
+      els.stateDisplay.innerHTML = '<h3 style="margin:0 0 10px;font-size:0.95rem">' + escapeHtml(title) + '</h3>' + html;
+    }
+
+    async function refreshPlayersInGame(options = {}) {
+      if (!requireGameId()) return;
+      const result = await apiRequest('GET', '/games/' + state.gameId + '/players/scores');
+      if (result.ok) {
+        state.players = (result.data || []).map(s => ({ id: s.playerId, name: s.name }));
+        if (state.playerId && !state.players.some(p => p.id === state.playerId)) {
+          state.playerId = state.players.length ? state.players[0].id : '';
+        } else if (!state.playerId && state.players.length) {
+          state.playerId = state.players[0].id;
+        }
+        syncInputsFromState();
+        if (!options.silent) {
+          setStateDisplay('Players in game', renderScores(result.data));
+        }
+      }
+    }
+
+    // --- Actions ---
+
+    document.getElementById('btn-create-game').addEventListener('click', async () => {
+      const result = await apiRequest('POST', '/games');
+      if (result.ok && result.data && result.data.id) {
+        state.gameId = result.data.id;
+        state.players = [];
+        state.playerId = '';
+        syncInputsFromState();
+        await refreshPlayersInGame({ silent: true });
+      }
+    });
+
+    document.getElementById('btn-delete-game').addEventListener('click', async () => {
+      if (!requireGameId()) return;
+      const result = await apiRequest('DELETE', '/games/' + state.gameId);
+      if (result.ok) {
+        state.gameId = '';
+        state.playerId = '';
+        state.players = [];
+        syncInputsFromState();
+        setStateDisplay('Game deleted', '<p class="empty">Game removed. Create a new game to continue.</p>');
+      }
+    });
+
+    document.getElementById('btn-create-deck').addEventListener('click', async () => {
+      const result = await apiRequest('POST', '/decks');
+      if (result.ok && result.data && result.data.id) {
+        state.deckId = result.data.id;
+        syncInputsFromState();
+      }
+    });
+
+    document.getElementById('btn-add-deck-to-shoe').addEventListener('click', async () => {
+      if (!requireGameId() || !requireDeckId()) return;
+      await apiRequest('POST', '/games/' + state.gameId + '/shoe/decks/' + state.deckId);
+    });
+
+    document.getElementById('btn-shuffle-shoe').addEventListener('click', async () => {
+      if (!requireGameId()) return;
+      await apiRequest('POST', '/games/' + state.gameId + '/shoe:shuffle');
+    });
+
+    document.getElementById('btn-add-player').addEventListener('click', async () => {
+      if (!requireGameId()) return;
+      const name = els.playerName.value.trim();
+      if (!name) {
+        showStatus('Player name is required.', 'error');
+        return;
+      }
+      const result = await apiRequest('POST', '/games/' + state.gameId + '/players', { name });
+      if (result.ok && result.data) {
+        state.playerId = result.data.id;
+        const existing = state.players.find(p => p.id === result.data.id);
+        if (!existing) {
+          state.players.push({ id: result.data.id, name: result.data.name });
+        }
+        syncInputsFromState();
+        showStatus('Added player "' + result.data.name + '" to game ' + state.gameId, 'success');
+      }
+    });
+
+    document.getElementById('btn-refresh-players').addEventListener('click', () => {
+      refreshPlayersInGame();
+    });
+
+    document.getElementById('btn-remove-player').addEventListener('click', async () => {
+      if (!requireGameId() || !requirePlayerId()) return;
+      const result = await apiRequest('DELETE', '/games/' + state.gameId + '/players/' + state.playerId);
+      if (result.ok) {
+        state.players = state.players.filter(p => p.id !== state.playerId);
+        state.playerId = state.players.length ? state.players[0].id : '';
+        syncInputsFromState();
+        showStatus('Removed player from game ' + state.gameId, 'success');
+      }
+    });
+
+    document.getElementById('btn-deal-cards').addEventListener('click', async () => {
+      if (!requireGameId() || !requirePlayerId()) return;
+      const count = parseInt(els.dealCount.value, 10);
+      if (!count || count < 1) {
+        showStatus('Deal count must be a positive number.', 'error');
+        return;
+      }
+      const result = await apiRequest(
+        'POST',
+        '/games/' + state.gameId + '/players/' + state.playerId + '/cards:deal',
+        { count }
+      );
+      if (result.ok) {
+        setStateDisplay('Dealt cards', renderCards(result.data));
+      }
+    });
+
+    document.getElementById('btn-get-player-cards').addEventListener('click', async () => {
+      if (!requireGameId() || !requirePlayerId()) return;
+      const result = await apiRequest('GET', '/games/' + state.gameId + '/players/' + state.playerId + '/cards');
+      if (result.ok) {
+        setStateDisplay('Player cards', renderCards(result.data));
+      }
+    });
+
+    document.getElementById('btn-get-scores').addEventListener('click', async () => {
+      if (!requireGameId()) return;
+      const result = await apiRequest('GET', '/games/' + state.gameId + '/players/scores');
+      if (result.ok) {
+        setStateDisplay('Player scores', renderScores(result.data));
+      }
+    });
+
+    document.getElementById('btn-get-remaining-suits').addEventListener('click', async () => {
+      if (!requireGameId()) return;
+      const result = await apiRequest('GET', '/games/' + state.gameId + '/shoe/remaining/suits');
+      if (result.ok) {
+        setStateDisplay('Remaining cards by suit', renderRemainingSuits(result.data));
+      }
+    });
+
+    document.getElementById('btn-get-remaining-cards').addEventListener('click', async () => {
+      if (!requireGameId()) return;
+      const result = await apiRequest('GET', '/games/' + state.gameId + '/shoe/remaining/cards');
+      if (result.ok) {
+        setStateDisplay('Remaining cards by suit and rank', renderRemainingCards(result.data));
+      }
+    });
+
+    syncInputsFromState();
+    showStatus('Ready. Create a game to get started.', 'info');
+  </script>
+</body>
+</html>
