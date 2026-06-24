@@ -2,6 +2,7 @@ package com.cardgame.deckservice.domain;
 
 /**
  * Standard poker suits with a fixed display/sort order for remaining-card queries.
+ * as suggested sort order (hearts, spades, clubs, and diamonds)
  */
 public enum Suit {
     HEARTS(0),

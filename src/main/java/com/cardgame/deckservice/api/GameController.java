@@ -140,6 +140,10 @@ public class GameController {
                 .toList();
     }
 
+    /**
+     * Get the count of each card (suit and value) remaining in the game deck
+     * sorted by suit (hearts, spades, clubs, and diamonds) and face value from high value to low value (King,Queen, Jack, 10….2, Ace with value of 1)
+     */
     @GetMapping("/{gameId}/shoe/remaining/cards")
     @Operation(
             summary = "Get undealt card counts by suit and rank",
@@ -151,7 +155,7 @@ public class GameController {
         return gameService.getRemainingCardCounts(gameId).stream()
                 .map(count -> new RemainingCardCountResponse(count.suit(), count.rank(), count.count()))
                 .toList();
-    } //todo: is this correct? Get the count of each card (suit and value) remaining in the game deck sorted by suit (hearts, spades, clubs, and diamonds) and face value from high value to low value (King,Queen, Jack, 10….2, Ace with value of 1)
+    }
 
     /**
      * Uses a colon action suffix because shuffle is an operation on the shoe rather than a new resource.

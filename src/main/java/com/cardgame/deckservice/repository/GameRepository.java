@@ -9,6 +9,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
 
+/**
+ * A contract for all potential db implementation
+ */
 public interface GameRepository {
 
     void create(Game game);
@@ -21,6 +24,9 @@ public interface GameRepository {
 
     List<Card> dealCards(UUID gameId, UUID playerId, int count);
 
+    /**
+     * @param shuffleFn the function to shuffle the undealt shoe, in unit test, it is simply reversed the order of the cards
+     */
     void shuffleUndealtShoe(UUID gameId, UnaryOperator<List<Card>> shuffleFn);
 
     Optional<Game> findById(UUID id);

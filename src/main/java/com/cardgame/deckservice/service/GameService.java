@@ -131,7 +131,7 @@ public class GameService {
             CardCount existing = counts.get(key);
             counts.put(key, new CardCount(existing.suit(), existing.rank(), existing.count() + 1));
         }
-
+        // sorted by suit (hearts, spades, clubs, and diamonds) and face value from high value to low value (King,Queen, Jack, 10….2, Ace with value of 1)
         return counts.values().stream()
                 .sorted(Comparator
                         .comparingInt((CardCount count) -> count.suit().getSortOrder())

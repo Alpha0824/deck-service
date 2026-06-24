@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -207,6 +206,12 @@ public class PostgresGameRepository implements GameRepository {
         }
     }
 
+    /**
+     *
+     * @param gameId
+     * @param deck the deck that is going to add to the shoe
+     * @param startPosition the current shoe size of the given game before adding more cards
+     */
     private void insertShoeRows(UUID gameId, Deck deck, int startPosition) {
         List<Card> cards = deck.getCards();
         for (int i = 0; i < cards.size(); i++) {
@@ -228,11 +233,13 @@ public class PostgresGameRepository implements GameRepository {
     }
 
     /**
-     * dealt card start from given position and dealt count times to the given player
+     * undealt card start from given position and dealt count times to the given player
+     * @param fromPosition: next deal index
      */
     private void markCardsDealtRows(UUID gameId, int fromPosition, int count, UUID playerId) {
         Instant dealtAt = Instant.now();
         for (int position = fromPosition; position < fromPosition + count; position++) {
+            // check dealt_to_player_id IS NULL is an extra protection, though position already points to the next card to deal
             int updated = jdbcClient.sql("""
                             UPDATE game_shoe_cards
                             SET dealt_to_player_id = :playerId,

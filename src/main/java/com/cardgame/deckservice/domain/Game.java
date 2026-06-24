@@ -18,7 +18,7 @@ public final class Game {
     private final List<Card> shoe; // card at each position
     private final List<UUID> shoeSourceDeckIds; // provenance per slot (set at append time, not updated on shuffle)
     private final List<UUID> dealtToPlayerByShoePosition; // deal history per slot
-    private int nextDealIndex; // where dealing resumes
+    private int nextDealIndex; // where dealing resumes, O(1) dealing — dealCards() just uses the cursor
 
     public Game(UUID id) {
         this.id = Objects.requireNonNull(id, "id");
@@ -31,7 +31,7 @@ public final class Game {
 
     /**
      * Rebuilds a persisted game aggregate from stored state.
-     * the intent is to rebuild from storage not create new game
+     * the intent is to rebuild from storage not create new game, so that we only expose a single constructor
      */
     public static Game restore(
             UUID id,
@@ -113,7 +113,7 @@ public final class Game {
     }
 
     /**
-     * Deals up to {@code count} cards from the undealt portion of the shoe.
+     * Deals up to count cards from the undealt portion of the shoe.
      * Returns fewer cards when the shoe is exhausted.
      */
     public List<Card> dealCards(UUID playerId, int count) {
