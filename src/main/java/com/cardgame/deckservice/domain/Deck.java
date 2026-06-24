@@ -29,6 +29,9 @@ public final class Deck {
         return new Deck(UUID.randomUUID(), cards);
     }
 
+    /**
+     * the intent is to rebuild from storage not create new deck, so that we only expose a single constructor
+     */
     public static Deck restore(UUID id, List<Card> cards) {
         if (cards.size() != 52) {
             throw new IllegalArgumentException("A standard deck must contain exactly 52 cards");

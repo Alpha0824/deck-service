@@ -121,6 +121,23 @@ PostgreSQL schema (auto-initialized):
 - `games`, `players`
 - `game_shoe_cards`
 
+## Domain Assumptions
+
+These rules define what the service models today. They are enforced in the domain layer and reflected in the PostgreSQL schema.
+
+### Decks
+
+- **A deck can be used in multiple games.** Decks are standalone resources. Adding a deck to a game shoe copies its cards into that game’s `game_shoe_cards` rows; the deck row itself is not consumed or locked to one game.
+- **The same deck cannot be added to one game shoe twice.** `Game.appendDeck` rejects a duplicate `deckId` for the same game with a validation error (`Deck is already in the game shoe`).
+- **Deleting a game does not delete the decks that were used in it.** `DELETE` on `games` cascades to `players` and `game_shoe_cards`, but `decks` and `deck_cards` are left in the database. Deck rows may therefore outlive any single game that referenced them.
+
+### Players
+
+- **A player is a participant in one specific game, not a global user account.** There is no shared player registry, login, or cross-game identity. Each `POST .../players` call creates a new game-scoped player row with a new UUID.
+- **The same player record cannot join multiple games.** A player ID always belongs to exactly one `game_id`. The API does not support reusing an existing player from game A in game B; you add a fresh participant per game instead.
+- **The same display name may appear in different games.** `"Alice"` in game 1 and `"Alice"` in game 2 are separate player records with different IDs. Name uniqueness is enforced only within a single game.
+- **Deleting a game removes its players.** `players.game_id` references `games(id) ON DELETE CASCADE`, so all players for that game are removed when the game is deleted.
+
 ## Design Decisions And Tradeoffs
 
 ### PostgreSQL-first runtime
